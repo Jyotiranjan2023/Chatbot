@@ -7,13 +7,32 @@ export default function ChatWindow() {
   const [input, setInput] = useState("");
   const [data, setData] = useState([]);
   const [typing, setTyping] = useState(false);
+  const [language, setLanguage] = useState(null);
 
   const bottomRef = useRef();
+
+  // 🌐 LANGUAGE DATA
+  const texts = {
+    en: {
+      welcome: "Hi 👋 How can I help you today?",
+      next: "What would you like next?",
+      upload: "Image received ✅",
+      contact: "Our team will contact you soon.",
+      choose: "Please select your language",
+    },
+    bn: {
+      welcome: "হাই 👋 আমি কিভাবে সাহায্য করতে পারি?",
+      next: "এখন আপনি কি করতে চান?",
+      upload: "ছবি গ্রহণ করা হয়েছে ✅",
+      contact: "আমাদের টিম আপনার সাথে যোগাযোগ করবে",
+      choose: "ভাষা নির্বাচন করুন",
+    },
+  };
 
   const defaultData = [
     {
       id: 1,
-      question: "Hi 👋 How can I help you today?",
+      question: "root",
       options: [
         { text: "Deposit Issue", next: 2 },
         { text: "Withdrawal Issue", next: 3 },
@@ -32,36 +51,42 @@ export default function ChatWindow() {
   ];
 
   useEffect(() => {
+    const storedLang = localStorage.getItem("lang");
+    if (storedLang) setLanguage(storedLang);
+
     const stored = JSON.parse(localStorage.getItem("chatData"));
     const finalData = stored && stored.length ? stored : defaultData;
 
     setData(finalData);
-    setCurrent(finalData[0]);
-    setMessages([{ type: "bot", text: finalData[0].question }]);
   }, []);
+
+  useEffect(() => {
+    if (language && data.length) {
+      setCurrent(data[0]);
+      setMessages([
+        { type: "bot", text: texts[language].welcome },
+      ]);
+    }
+  }, [language, data]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, typing]);
 
-  // ✅ Typing simulation
   const botReply = (text, nextNode = null) => {
     setTyping(true);
 
     setTimeout(() => {
       setTyping(false);
 
-      setMessages((prev) => [
-        ...prev,
-        { type: "bot", text },
-      ]);
+      setMessages((prev) => [...prev, { type: "bot", text }]);
 
       if (nextNode) {
         if (!nextNode.options.length) {
           setTimeout(() => {
             setMessages((prev) => [
               ...prev,
-              { type: "bot", text: "What would you like next?" },
+              { type: "bot", text: texts[language].next },
             ]);
             setCurrent(data[0]);
           }, 800);
@@ -69,19 +94,18 @@ export default function ChatWindow() {
           setCurrent(nextNode);
         }
       }
-    }, 800);
+    }, 700);
   };
 
   const handleOptionClick = (opt) => {
     const next = data.find((item) => item.id === opt.next);
-    if (!next) return;
 
     setMessages((prev) => [
       ...prev,
       { type: "user", text: opt.text },
     ]);
 
-    botReply(next.answer || next.question, next);
+    botReply(next.answer, next);
   };
 
   const handleSend = () => {
@@ -92,43 +116,64 @@ export default function ChatWindow() {
       { type: "user", text: input },
     ]);
 
-    botReply("Our team will contact you soon.");
+    botReply(texts[language].contact);
     setInput("");
   };
 
-  const handleCancel = () => {
-    setMessages([
-      { type: "bot", text: data[0]?.question || "Hi 👋 How can I help you?" },
-    ]);
-    setCurrent(data[0]);
+  const handleLanguage = (lang) => {
+    setLanguage(lang);
+    localStorage.setItem("lang", lang);
   };
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
-    if (!file) return;
-
     const reader = new FileReader();
+
     reader.onload = () => {
       setMessages((prev) => [
         ...prev,
         { type: "user", image: reader.result },
       ]);
-
-      botReply("Image received ✅");
+      botReply(texts[language].upload);
     };
+
     reader.readAsDataURL(file);
   };
 
+  // ❗ LANGUAGE SCREEN
+  if (!language) {
+    return (
+      <div className="h-[700px] flex flex-col items-center justify-center bg-[#0b1220] text-white">
+        <div className="bg-gray-600 px-4 py-2 rounded mb-4">
+          🌐 {texts.en.choose}
+        </div>
+
+        <div className="flex gap-3">
+          <button
+            onClick={() => handleLanguage("en")}
+            className="bg-black px-4 py-2 rounded"
+          >
+            English
+          </button>
+
+          <button
+            onClick={() => handleLanguage("bn")}
+            className="bg-black px-4 py-2 rounded"
+          >
+            বাংলা
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="w-full max-w-lg mx-auto h-[700px] flex flex-col bg-gradient-to-b from-[#0f172a] to-[#020617] text-white rounded-xl shadow-2xl overflow-hidden">
+    <div className="h-[700px] flex flex-col bg-[#0b1220] text-white">
 
       {/* HEADER */}
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-3 flex justify-between items-center">
-        <div className="flex items-center gap-2">
-          <span>🤖</span>
-          <span className="font-bold">Biswajit Support</span>
-        </div>
-        <span className="text-sm">Online</span>
+      <div className="bg-blue-600 p-3 flex justify-between">
+        <span>🤖 Support</span>
+        <span>Online</span>
       </div>
 
       {/* SEARCH */}
@@ -137,19 +182,18 @@ export default function ChatWindow() {
           placeholder="Search Ticket ID"
           className="flex-1 p-2 border rounded text-black"
         />
-        <button className="bg-yellow-400 px-3 rounded text-black">Search</button>
+        <button className="bg-yellow-400 px-3 rounded text-black">
+          Search
+        </button>
       </div>
 
-      {/* MESSAGES */}
+      {/* CHAT */}
       <div className="flex-1 overflow-y-auto p-3 space-y-2">
         {messages.map((m, i) => (
           <MessageBubble key={i} msg={m} />
         ))}
 
-        {/* Typing */}
-        {typing && (
-          <div className="text-sm text-gray-400">Typing...</div>
-        )}
+        {typing && <div className="text-gray-400">Typing...</div>}
 
         <div ref={bottomRef}></div>
       </div>
@@ -161,7 +205,7 @@ export default function ChatWindow() {
             <button
               key={i}
               onClick={() => handleOptionClick(opt)}
-              className="border border-yellow-400 p-2 rounded-lg hover:bg-yellow-400 hover:text-black transition"
+              className="border border-yellow-400 p-2 rounded hover:bg-yellow-400 hover:text-black"
             >
               {opt.text}
             </button>
@@ -174,24 +218,12 @@ export default function ChatWindow() {
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") handleSend();
-          }}
+          onKeyDown={(e) => e.key === "Enter" && handleSend()}
           className="flex-1 p-2 rounded text-black"
           placeholder="Type message"
         />
-
-        <button
-          onClick={handleCancel}
-          className="bg-red-500 px-3 rounded"
-        >
-          Cancel
-        </button>
-
-        <button
-          onClick={handleSend}
-          className="bg-yellow-400 px-3 rounded text-black"
-        >
+        <button className="bg-red-500 px-3 rounded">Cancel</button>
+        <button onClick={handleSend} className="bg-yellow-400 px-3 rounded text-black">
           Send
         </button>
       </div>
