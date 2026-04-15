@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import MessageBubble from "./MessageBubble";
+import supportLogo from "../assets/support.png"; // ✅ ADD THIS
 
 export default function ChatWindow() {
   const [messages, setMessages] = useState([]);
@@ -8,10 +9,10 @@ export default function ChatWindow() {
   const [data, setData] = useState([]);
   const [typing, setTyping] = useState(false);
   const [language, setLanguage] = useState(null);
+  const [selectedFile, setSelectedFile] = useState(null); // ✅ NEW
 
   const bottomRef = useRef();
 
-  // 🌐 LANGUAGE DATA
   const texts = {
     en: {
       welcome: "Hi 👋 How can I help you today?",
@@ -63,9 +64,7 @@ export default function ChatWindow() {
   useEffect(() => {
     if (language && data.length) {
       setCurrent(data[0]);
-      setMessages([
-        { type: "bot", text: texts[language].welcome },
-      ]);
+      setMessages([{ type: "bot", text: texts[language].welcome }]);
     }
   }, [language, data]);
 
@@ -78,7 +77,6 @@ export default function ChatWindow() {
 
     setTimeout(() => {
       setTyping(false);
-
       setMessages((prev) => [...prev, { type: "bot", text }]);
 
       if (nextNode) {
@@ -125,8 +123,9 @@ export default function ChatWindow() {
     localStorage.setItem("lang", lang);
   };
 
-  const handleImageUpload = (e) => {
-    const file = e.target.files[0];
+  const handleImageUpload = (file) => {
+    if (!file) return;
+
     const reader = new FileReader();
 
     reader.onload = () => {
@@ -138,9 +137,10 @@ export default function ChatWindow() {
     };
 
     reader.readAsDataURL(file);
+    setSelectedFile(file);
   };
 
-  // ❗ LANGUAGE SCREEN
+  // LANGUAGE SCREEN
   if (!language) {
     return (
       <div className="h-[700px] flex flex-col items-center justify-center bg-[#0b1220] text-white">
@@ -149,17 +149,10 @@ export default function ChatWindow() {
         </div>
 
         <div className="flex gap-3">
-          <button
-            onClick={() => handleLanguage("en")}
-            className="bg-black px-4 py-2 rounded"
-          >
+          <button onClick={() => handleLanguage("en")} className="bg-black px-4 py-2 rounded">
             English
           </button>
-
-          <button
-            onClick={() => handleLanguage("bn")}
-            className="bg-black px-4 py-2 rounded"
-          >
+          <button onClick={() => handleLanguage("bn")} className="bg-black px-4 py-2 rounded">
             বাংলা
           </button>
         </div>
@@ -171,20 +164,18 @@ export default function ChatWindow() {
     <div className="h-[700px] flex flex-col bg-[#0b1220] text-white">
 
       {/* HEADER */}
-      <div className="bg-blue-600 p-3 flex justify-between">
-        <span>🤖Biswajit Support</span>
+      <div className="bg-blue-600 p-3 flex justify-between items-center">
+        <div className="flex items-center gap-2">
+          <img src={supportLogo} alt="logo" className="w-7 h-7" />
+          <span className="font-semibold">Biswajit Support</span>
+        </div>
         <span>Online</span>
       </div>
 
       {/* SEARCH */}
       <div className="p-2 bg-white flex gap-2">
-        <input
-          placeholder="Search Ticket ID"
-          className="flex-1 p-2 border rounded text-black"
-        />
-        <button className="bg-yellow-400 px-3 rounded text-black">
-          Search
-        </button>
+        <input className="flex-1 p-2 border rounded text-black" placeholder="Search Ticket ID" />
+        <button className="bg-yellow-400 px-3 rounded text-black">Search</button>
       </div>
 
       {/* CHAT */}
@@ -192,9 +183,7 @@ export default function ChatWindow() {
         {messages.map((m, i) => (
           <MessageBubble key={i} msg={m} />
         ))}
-
         {typing && <div className="text-gray-400">Typing...</div>}
-
         <div ref={bottomRef}></div>
       </div>
 
@@ -214,24 +203,49 @@ export default function ChatWindow() {
       )}
 
       {/* INPUT */}
-      <div className="flex p-2 gap-2 bg-black">
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleSend()}
-          className="flex-1 p-2 rounded text-black"
-          placeholder="Type message"
-        />
-        <button className="bg-red-500 px-3 rounded">Cancel</button>
-        <button onClick={handleSend} className="bg-yellow-400 px-3 rounded text-black">
-          Send
-        </button>
+      <div className="bg-black p-3">
+        <div className="flex gap-2 items-center">
+
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSend()}
+            className="flex-1 p-2 rounded text-black"
+            placeholder="Type message"
+          />
+
+          {/* + Upload */}
+          <label className="bg-yellow-400 px-3 py-2 rounded cursor-pointer text-black font-bold">
+            +
+            <input
+              type="file"
+              hidden
+              onChange={(e) => handleImageUpload(e.target.files[0])}
+            />
+          </label>
+
+          <button onClick={handleSend} className="bg-yellow-400 px-3 rounded text-black">
+            Send
+          </button>
+
+          <button
+            onClick={() => {
+              setInput("");
+              setSelectedFile(null);
+            }}
+            className="bg-red-500 px-3 rounded"
+          >
+            ✕
+          </button>
+        </div>
+
+        {selectedFile && (
+          <p className="text-xs text-gray-300 mt-1">
+            {selectedFile.name}
+          </p>
+        )}
       </div>
 
-      {/* IMAGE */}
-      <div className="p-2 bg-black">
-        <input type="file" onChange={handleImageUpload} />
-      </div>
     </div>
   );
 }
