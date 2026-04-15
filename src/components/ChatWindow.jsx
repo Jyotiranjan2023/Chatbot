@@ -172,7 +172,7 @@ export default function ChatWindow() {
 
       {/* HEADER */}
       <div className="bg-blue-600 p-3 flex justify-between">
-        <span>🤖 Support</span>
+        <span>🤖Biswajit Support</span>
         <span>Online</span>
       </div>
 
