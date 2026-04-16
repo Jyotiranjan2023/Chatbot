@@ -14,7 +14,7 @@ export default function ChatWindow() {
     localStorage.getItem("chatLogo") ||
     "https://cdn-icons-png.flaticon.com/512/1041/1041916.png";
 
-  const title = localStorage.getItem("chatTitle") || "Support";
+  const title = localStorage.getItem("chatTitle") || "Biswajit Support";
 
   const avatar =
     localStorage.getItem("chatAvatar") ||
